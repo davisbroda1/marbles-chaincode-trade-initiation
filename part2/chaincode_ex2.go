@@ -34,30 +34,22 @@ import (
 type SimpleChaincode struct {
 }
 
-var marbleIndexStr = "_marbleindex"				//name for the key/value that will store a list of all known marbles
-var openTradesStr = "_opentrades"				//name for the key/value that will store all open trades
+var tradeIndexStr = "_tradeindex"				//name for the key/value that will store a list of all known trades
 
-type Marble struct{
-	Name string `json:"name"`					//the fieldtags are needed to keep case from bouncing around
-	Color string `json:"color"`
-	Size int `json:"size"`
+// everything under "Counterparty" is not exposed, used internally
+type Trade struct {
+	TradeDate string `json:"tradedate"`
+	ValueDate string `json:"valuedate"`
+	Operation string `json:"operation"`
+	Quantity int `json:"quantity"`
+	Security string `json:"security"`
+	Price string `json:"price"`
+	Counterparty string `json:"counterparty"`
+	Identifier string `json:"identifier"`		// internal identifier
 	User string `json:"user"`
-}
-
-type Description struct{
-	Color string `json:"color"`
-	Size int `json:"size"`
-}
-
-type AnOpenTrade struct{
-	User string `json:"user"`					//user who created the open trade order
-	Timestamp int64 `json:"timestamp"`			//utc timestamp of creation
-	Want Description  `json:"want"`				//description of desired marble
-	Willing []Description `json:"willing"`		//array of marbles willing to trade away
-}
-
-type AllTrades struct{
-	OpenTrades []AnOpenTrade `json:"open_trades"`
+	Timestamp int64 `json:"timestamp"`			// utc timestamp of creation
+	Settled int `json:"settled"`				// enriched & settled
+	NeedsRevision int `json:"needsrevision"`	// returned to client for revision
 }
 
 // ============================================================================================================================
@@ -85,14 +77,7 @@ func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte,
 	
 	var empty []string
 	jsonAsBytes, _ := json.Marshal(empty)								//marshal an emtpy array of strings to clear the index
-	err = stub.PutState(marbleIndexStr, jsonAsBytes)
-	if err != nil {
-		return nil, err
-	}
-	
-	var trades AllTrades
-	jsonAsBytes, _ = json.Marshal(trades)								//clear the open trade struct
-	err = stub.PutState(openTradesStr, jsonAsBytes)
+	err = stub.PutState(tradeIndexStr, jsonAsBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -104,74 +89,25 @@ func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte,
 // Run - Our entry point
 // ============================================================================================================================
 func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
+
 	fmt.Println("run is running " + function)
 
 	// Handle different functions
-	if function == "init" {													//initialize the chaincode state, used as reset
+	if function == "init" {												// initialize the chaincode state, used as reset
 		return t.init(stub, args)
-	} else if function == "delete" {										//deletes an entity from its state
-		res, err := t.Delete(stub, args)
-		cleanTrades(stub)													//lets make sure all open trades are still valid
-		return res, err
-	} else if function == "write" {											//writes a value to the chaincode state
+	} else if function == "write" {										// writes a value to the chaincode state
 		return t.Write(stub, args)
-	} else if function == "init_marble" {									//create a new marble
-		return t.init_marble(stub, args)
-	} else if function == "set_user" {										//change owner of a marble
-		res, err := t.set_user(stub, args)
-		cleanTrades(stub)													//lets make sure all open trades are still valid
-		return res, err
-	} else if function == "open_trade" {									//create a new trade order
-		return t.open_trade(stub, args)
-	} else if function == "perform_trade" {									//forfill an open trade order
-		res, err := t.perform_trade(stub, args)
-		cleanTrades(stub)													//lets clean just in case
-		return res, err
-	} else if function == "remove_trade" {									//cancel an open trade order
-		return t.remove_trade(stub, args)
+	} else if function == "init_trade" {									// create a new trade
+		return t.init_trade(stub, args)
+	} else if function == "submit_for_enrichment" {							// submit for enrichment
+		return t.submit_for_enrichment(stub, args)
+	} else if function == "mark_revision_needed" {						
+		return t.mark_revision_needed(stub, args)
 	}
-	fmt.Println("run did not find func: " + function)						//error
+
+	fmt.Println("run did not find func: " + function)						// error
 
 	return nil, errors.New("Received unknown function invocation")
-}
-
-// ============================================================================================================================
-// Delete - remove a key/value pair from state
-// ============================================================================================================================
-func (t *SimpleChaincode) Delete(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
-	if len(args) != 1 {
-		return nil, errors.New("Incorrect number of arguments. Expecting 1")
-	}
-	
-	name := args[0]
-	err := stub.DelState(name)													//remove the key from chaincode state
-	if err != nil {
-		return nil, errors.New("Failed to delete state")
-	}
-
-	//get the marble index
-	marblesAsBytes, err := stub.GetState(marbleIndexStr)
-	if err != nil {
-		return nil, errors.New("Failed to get marble index")
-	}
-	var marbleIndex []string
-	json.Unmarshal(marblesAsBytes, &marbleIndex)								//un stringify it aka JSON.parse()
-	
-	//remove marble from index
-	for i,val := range marbleIndex{
-		fmt.Println(strconv.Itoa(i) + " - looking at " + val + " for " + name)
-		if val == name{															//find the correct marble
-			fmt.Println("found marble")
-			marbleIndex = append(marbleIndex[:i], marbleIndex[i+1:]...)			//remove it
-			for x:= range marbleIndex{											//debug prints...
-				fmt.Println(string(x) + " - " + marbleIndex[x])
-			}
-			break
-		}
-	}
-	jsonAsBytes, _ := json.Marshal(marbleIndex)									//save new index
-	err = stub.PutState(marbleIndexStr, jsonAsBytes)
-	return nil, nil
 }
 
 // ============================================================================================================================
@@ -181,17 +117,17 @@ func (t *SimpleChaincode) Query(stub *shim.ChaincodeStub, function string, args 
 	if function != "query" {
 		return nil, errors.New("Invalid query function name. Expecting \"query\"")
 	}
-	var name, jsonResp string
+	var security, jsonResp string
 	var err error
 
 	if len(args) != 1 {
-		return nil, errors.New("Incorrect number of arguments. Expecting name of the person to query")
+		return nil, errors.New("Incorrect number of arguments. Expecting security of the trade to query")
 	}
 
-	name = args[0]
-	valAsbytes, err := stub.GetState(name)									//get the var from chaincode state
+	security = args[0]
+	valAsbytes, err := stub.GetState(security)									//get the var from chaincode state
 	if err != nil {
-		jsonResp = "{\"Error\":\"Failed to get state for " + name + "\"}"
+		jsonResp = "{\"Error\":\"Failed to get state for security " + security + "\"}"
 		return nil, errors.New(jsonResp)
 	}
 
@@ -209,17 +145,17 @@ func main() {
 // Write - write variable into chaincode state
 // ============================================================================================================================
 func (t *SimpleChaincode) Write(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
-	var name, value string // Entities
+	var security, value string // Entities
 	var err error
 	fmt.Println("running write()")
 
 	if len(args) != 2 {
-		return nil, errors.New("Incorrect number of arguments. Expecting 2. name of the variable and value to set")
+		return nil, errors.New("Incorrect number of arguments. Expecting 2. security of the variable and value to set")
 	}
 
-	name = args[0]															//rename for funsies
+	security = args[0]															//rename for funsies
 	value = args[1]
-	err = stub.PutState(name, []byte(value))								//write the variable into the chaincode state
+	err = stub.PutState(security, []byte(value))								//write the variable into the chaincode state
 	if err != nil {
 		return nil, err
 	}
@@ -227,18 +163,18 @@ func (t *SimpleChaincode) Write(stub *shim.ChaincodeStub, args []string) ([]byte
 }
 
 // ============================================================================================================================
-// Init Marble - create a new marble, store into chaincode state
+// Init Trade - create a new trade, store into chaincode state
 // ============================================================================================================================
-func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+func (t *SimpleChaincode) init_trade(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	var err error
 
-	//   0       1       2     3
-	// "asdf", "blue", "35", "bob"
-	if len(args) != 4 {
-		return nil, errors.New("Incorrect number of arguments. Expecting 4")
+	//   0            1            2          3          4          5          6
+	// "01-29-94"	"01-30-94"    "buy"		"100"   	"IBM"  	"100.12"   "counterparty"
+	if len(args) != 7 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 7")
 	}
 
-	fmt.Println("- start init marble")
+	fmt.Println("- start init trade")
 	if len(args[0]) <= 0 {
 		return nil, errors.New("1st argument must be a non-empty string")
 	}
@@ -251,41 +187,62 @@ func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) (
 	if len(args[3]) <= 0 {
 		return nil, errors.New("4th argument must be a non-empty string")
 	}
-	
-	size, err := strconv.Atoi(args[2])
-	if err != nil {
-		return nil, errors.New("3rd argument must be a numeric string")
+	if len(args[4]) <= 0 {
+		return nil, errors.New("5th argument must be a non-empty string")
+	}
+	if len(args[5]) <= 0 {
+		return nil, errors.New("6th argument must be a non-empty string")
+	}
+	if len(args[6]) <= 0 {
+		return nil, errors.New("7th argument must be a non-empty string")
 	}
 	
-	color := strings.ToLower(args[1])
-	user := strings.ToLower(args[3])
+	quantity, err := strconv.Atoi(args[3])
+	if err != nil {
+		return nil, errors.New("4th argument must be a numeric string")
+	}
+	
+	tradedate := strings.ToLower(args[0])
+	valuedate := strings.ToLower(args[1])
+	operation := strings.ToLower(args[2])
+	security := strings.ToLower(args[4])
+	price := strings.ToLower(args[5])
+	counterparty := strings.ToLower(args[6])
 
-	str := `{"name": "` + args[0] + `", "color": "` + color + `", "size": ` + strconv.Itoa(size) + `, "user": "` + user + `"}`
+	str := `{"tradedate": "` + tradedate + `", "valuedate": "` + valuedate + `", "operation": "` + operation + `", "quantity": ` + quantity + `, "security": "` + security + `", "price": "` + price + `", "counterparty": "` + counterparty + `"}`
 	err = stub.PutState(args[0], []byte(str))								//store marble with id as key
 	if err != nil {
 		return nil, err
 	}
 		
-	//get the marble index
-	marblesAsBytes, err := stub.GetState(marbleIndexStr)
+// 	TradeDate string `json:"tradedate"`0
+// 	ValueDate string `json:"valuedate"`1
+// 	Operation string `json:"operation"`2
+// 	Quantity int `json:"quantity"`3
+// 	Security string `json:"security"`4
+// 	Price string `json:"price"`5
+// 	Counterparty string `json:"counterparty"`6
+
+	//get the trade index
+	tradesAsBytes, err := stub.GetState(tradeIndexStr)
 	if err != nil {
-		return nil, errors.New("Failed to get marble index")
+		return nil, errors.New("Failed to get trade index")
 	}
-	var marbleIndex []string
-	json.Unmarshal(marblesAsBytes, &marbleIndex)							//un stringify it aka JSON.parse()
+	var tradeIndex []string
+	json.Unmarshal(tradesAsBytes, &tradeIndex)							//un stringify it aka JSON.parse()
 	
 	//append
-	marbleIndex = append(marbleIndex, args[0])								//add marble name to index list
-	fmt.Println("! marble index: ", marbleIndex)
-	jsonAsBytes, _ := json.Marshal(marbleIndex)
-	err = stub.PutState(marbleIndexStr, jsonAsBytes)						//store name of marble
+	tradeIndex = append(tradeIndex, args[4])								//add trade security to index list
+	fmt.Println("! trade index: ", tradeIndex)
+	jsonAsBytes, _ := json.Marshal(tradeIndex)
+	err = stub.PutState(tradeIndexStr, jsonAsBytes)						//store name of trade
 
-	fmt.Println("- end init marble")
+	fmt.Println("- end init trade")
 	return nil, nil
 }
 
 // ============================================================================================================================
-// Set User Permission on Marble
+// Set User Permission on Trade
 // ============================================================================================================================
 func (t *SimpleChaincode) set_user(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	var err error
