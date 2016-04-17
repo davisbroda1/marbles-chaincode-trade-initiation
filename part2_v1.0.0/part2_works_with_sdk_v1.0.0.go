@@ -182,46 +182,71 @@ func (t *SimpleChaincode) write(stub *shim.ChaincodeStub, args []string) ([]byte
 // ============================================================================================================================
 func (t *SimpleChaincode) create_and_submit_trade(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	
+	// reference
+	// chaincode.invoke.init_trade([data.tradedate, data.valuedate, data.operation, data.quantity, data.security, data.price, data.counterparty, data.user, data.timestamp, data.settled, data.needsrevision], cb_invoked);				//create a new trade
+
 	var err error
 
-	if len(args) != 4 {
-		return nil, errors.New("Incorrect number of arguments. Expecting 4")
+	if len(args) != 11 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 11")
 	}
 
-	fmt.Println("- start init marble")
+	fmt.Println("- start create_and_submit_trade")
 
-	if len(args[0]) <= 0 {
-		return nil, errors.New("1st argument must be a non-empty string")
-	}
-	if len(args[1]) <= 0 {
-		return nil, errors.New("2nd argument must be a non-empty string")
-	}
-	if len(args[2]) <= 0 {
-		return nil, errors.New("3rd argument must be a non-empty string")
-	}
-	if len(args[3]) <= 0 {
-		return nil, errors.New("4th argument must be a non-empty string")
-	}
+	// if len(args[0]) <= 0 {
+	// 	return nil, errors.New("1st argument must be a non-empty string")
+	// }
+	// if len(args[1]) <= 0 {
+	// 	return nil, errors.New("2nd argument must be a non-empty string")
+	// }
+	// if len(args[2]) <= 0 {
+	// 	return nil, errors.New("3rd argument must be a non-empty string")
+	// }
+	// if len(args[3]) <= 0 {
+	// 	return nil, errors.New("4th argument must be a non-empty string")
+	// }
 	
-	size, err := strconv.Atoi(args[2])
+	tradedate := strings.ToLower(args[0])
+	valuedate := strings.ToLower(args[1])
+	operation := strings.ToLower(args[2])
+
+	quantity, err := strconv.Atoi(args[3])
 	if err != nil {
-		return nil, errors.New("3rd argument must be a numeric string")
+		return nil, errors.New("4th argument must be a numeric string")
 	}
+
+	security := strings.ToLower(args[4])
+	price := strings.ToLower(args[5])
+	counterparty := strings.ToLower(args[6])
+	user := strings.ToLower(args[7])
 	
-	color := strings.ToLower(args[1])
-	user := strings.ToLower(args[3])
+	timestamp := makeTimestamp()
 
-	str := `{"name": "` + args[0] + `", "color": "` + color + `", "size": ` + strconv.Itoa(size) + `, "user": "` + user + `"}`
+	settled, err := strconv.Atoi(args[9])
+	if err != nil {
+		return nil, errors.New("9th argument must be a numeric string, either 0 or 1")
+	}
 
-	err = stub.PutState(args[0], []byte(str))							// store trade with timestamp as key
+	needsrevision, err := strconv.Atoi(args[10])
+	if err != nil {
+		return nil, errors.New("10th argument must be a numeric string, either 0 or 1")
+	}
+
+	// reference
+	// chaincode.invoke.init_trade([data.tradedate, data.valuedate, data.operation, data.quantity, data.security, data.price, data.counterparty, data.user, data.timestamp, data.settled, data.needsrevision], cb_invoked);				//create a new trade
+
+	str := `{"tradedate": "` + tradedate + `", "valuedate": "` + valuedate + `", "operation": "` + operation + `", "quantity": ` + strconv.Itoa(quantity) + `, "security": "` + security + `", "price": "` + price + `", "counterparty": "` + counterparty + `", "user": "` + user + `", "timestamp": "` + strconv.Itoa(timestamp) + `", "settled": "` + strconv.Itoa(settled) + `", "needsrevision": "` + strconv.Itoa(needsrevision) + `"}`
+
+	err = stub.PutState(timestamp, []byte(str))							// store trade with timestamp as key
 	if err != nil {
 		return nil, err
 	}
 		
-	tradesAsBytes, err := stub.GetState(tradeIndexStr)					//get the marble index
+	tradesAsBytes, err := stub.GetState(tradeIndexStr)					//get the trade index
 	if err != nil {
 		return nil, errors.New("Failed to get trade index")
 	}
+	
 	var tradeIndex []string
 	json.Unmarshal(tradesAsBytes, &tradeIndex)							// un stringify it aka JSON.parse()
 	
