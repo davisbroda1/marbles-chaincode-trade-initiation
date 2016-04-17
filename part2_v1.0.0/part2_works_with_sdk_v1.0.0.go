@@ -119,15 +119,18 @@ func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []
 // Query - Our entry point for Queries
 // ============================================================================================================================
 func (t *SimpleChaincode) Query(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
+
 	fmt.Println("query is running " + function)
 
 	// Handle different functions
 	if function == "read" {													//read a variable
 		return t.read(stub, args)
 	}
+
 	fmt.Println("query did not find func: " + function)						//error
 
 	return nil, errors.New("Received unknown function query")
+
 }
 
 // ============================================================================================================================
@@ -221,6 +224,7 @@ func (t *SimpleChaincode) create_and_submit_trade(stub *shim.ChaincodeStub, args
 	user := strings.ToLower(args[7])
 	
 	timestamp := makeTimestamp()
+	timestampAsString := strconv.FormatInt(timestamp, 10)
 
 	settled, err := strconv.Atoi(args[9])
 	if err != nil {
@@ -235,9 +239,9 @@ func (t *SimpleChaincode) create_and_submit_trade(stub *shim.ChaincodeStub, args
 	// reference
 	// chaincode.invoke.init_trade([data.tradedate, data.valuedate, data.operation, data.quantity, data.security, data.price, data.counterparty, data.user, data.timestamp, data.settled, data.needsrevision], cb_invoked);				//create a new trade
 
-	str := `{"tradedate": "` + tradedate + `", "valuedate": "` + valuedate + `", "operation": "` + operation + `", "quantity": ` + strconv.Itoa(quantity) + `, "security": "` + security + `", "price": "` + price + `", "counterparty": "` + counterparty + `", "user": "` + user + `", "timestamp": "` + strconv.Itoa(timestamp) + `", "settled": "` + strconv.Itoa(settled) + `", "needsrevision": "` + strconv.Itoa(needsrevision) + `"}`
+	str := `{"tradedate": "` + tradedate + `", "valuedate": "` + valuedate + `", "operation": "` + operation + `", "quantity": ` + strconv.Itoa(quantity) + `, "security": "` + security + `", "price": "` + price + `", "counterparty": "` + counterparty + `", "user": "` + user + `", "timestamp": "` + timestampAsString + `", "settled": "` + strconv.Itoa(settled) + `", "needsrevision": "` + strconv.Itoa(needsrevision) + `"}`
 
-	err = stub.PutState(timestamp, []byte(str))							// store trade with timestamp as key
+	err = stub.PutState(timestampAsString, []byte(str))							// store trade with timestamp as key
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +250,7 @@ func (t *SimpleChaincode) create_and_submit_trade(stub *shim.ChaincodeStub, args
 	if err != nil {
 		return nil, errors.New("Failed to get trade index")
 	}
-	
+
 	var tradeIndex []string
 	json.Unmarshal(tradesAsBytes, &tradeIndex)							// un stringify it aka JSON.parse()
 	
