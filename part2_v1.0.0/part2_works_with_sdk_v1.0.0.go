@@ -45,7 +45,7 @@ type Trade struct {
 	Price string `json:"price"`
 	Counterparty string `json:"counterparty"`
 	User string `json:"user"`
-	Timestamp int64 `json:"timestamp"`			// utc timestamp of creation
+	Timestamp int64 `json:"timestamp,string"`			// utc timestamp of creation
 	Settled int `json:"settled"`				// enriched & settled
 	NeedsRevision int `json:"needsrevision"`	// returned to client for revision
 }
