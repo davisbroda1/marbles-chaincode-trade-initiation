@@ -85,14 +85,7 @@ func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte,
 	
 	var empty []string
 	jsonAsBytes, _ := json.Marshal(empty)								//marshal an emtpy array of strings to clear the index
-	err = stub.PutState(marbleIndexStr, jsonAsBytes)
-	if err != nil {
-		return nil, err
-	}
-	
-	var trades AllTrades
-	jsonAsBytes, _ = json.Marshal(trades)								//clear the open trade struct
-	err = stub.PutState(openTradesStr, jsonAsBytes)
+	err = stub.PutState(tradeIndexStr, jsonAsBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -104,32 +97,41 @@ func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte,
 // Run - Our entry point for Invokcations
 // ============================================================================================================================
 func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
+	
 	fmt.Println("run is running " + function)
 
 	// Handle different functions
 	if function == "init" {													//initialize the chaincode state, used as reset
 		return t.init(stub, args)
-	} else if function == "delete" {										//deletes an entity from its state
-		res, err := t.Delete(stub, args)
-		cleanTrades(stub)													//lets make sure all open trades are still valid
-		return res, err
-	} else if function == "write" {											//writes a value to the chaincode state
-		return t.Write(stub, args)
-	} else if function == "init_marble" {									//create a new marble
-		return t.init_marble(stub, args)
-	} else if function == "set_user" {										//change owner of a marble
-		res, err := t.set_user(stub, args)
-		cleanTrades(stub)													//lets make sure all open trades are still valid
-		return res, err
-	} else if function == "open_trade" {									//create a new trade order
-		return t.open_trade(stub, args)
-	} else if function == "perform_trade" {									//forfill an open trade order
-		res, err := t.perform_trade(stub, args)
-		cleanTrades(stub)													//lets clean just in case
-		return res, err
-	} else if function == "remove_trade" {									//cancel an open trade order
-		return t.remove_trade(stub, args)
-	}
+	} 
+
+	// else if function == "delete" {										//deletes an entity from its state
+	// 	res, err := t.Delete(stub, args)
+	// 	cleanTrades(stub)													//lets make sure all open trades are still valid
+	// 	return res, err
+	// } 
+
+	// else if function == "write" {											//writes a value to the chaincode state
+	// 	return t.Write(stub, args)
+	// } 
+
+	// else if function == "init_marble" {									//create a new marble
+	// 	return t.init_marble(stub, args)
+	// }
+	// } else if function == "set_user" {										//change owner of a marble
+	// 	res, err := t.set_user(stub, args)
+	// 	cleanTrades(stub)													//lets make sure all open trades are still valid
+	// 	return res, err
+	// } else if function == "open_trade" {									//create a new trade order
+	// 	return t.open_trade(stub, args)
+	// } else if function == "perform_trade" {									//forfill an open trade order
+	// 	res, err := t.perform_trade(stub, args)
+	// 	cleanTrades(stub)													//lets clean just in case
+	// 	return res, err
+	// } else if function == "remove_trade" {									//cancel an open trade order
+	// 	return t.remove_trade(stub, args)
+	// }
+
 	fmt.Println("run did not find func: " + function)						//error
 
 	return nil, errors.New("Received unknown function invocation")
@@ -154,6 +156,7 @@ func (t *SimpleChaincode) Query(stub *shim.ChaincodeStub, function string, args 
 // Read - read a variable from chaincode state
 // ============================================================================================================================
 func (t *SimpleChaincode) read(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+	
 	var name, jsonResp string
 	var err error
 
