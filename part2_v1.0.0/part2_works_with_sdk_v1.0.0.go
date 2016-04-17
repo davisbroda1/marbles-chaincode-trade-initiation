@@ -105,7 +105,14 @@ func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []
 		return t.init(stub, args)
 	} 
 
-	// else if function == "delete" {										//deletes an entity from its state
+	fmt.Println("run did not find func: " + function)						//error
+
+	return nil, errors.New("Received unknown function invocation")
+	
+}
+
+
+// else if function == "delete" {										//deletes an entity from its state
 	// 	res, err := t.Delete(stub, args)
 	// 	cleanTrades(stub)													//lets make sure all open trades are still valid
 	// 	return res, err
@@ -132,10 +139,6 @@ func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []
 	// 	return t.remove_trade(stub, args)
 	// }
 
-	fmt.Println("run did not find func: " + function)						//error
-
-	return nil, errors.New("Received unknown function invocation")
-}
 
 // ============================================================================================================================
 // Query - Our entry point for Queries
