@@ -255,7 +255,7 @@ func (t *SimpleChaincode) create_and_submit_trade(stub *shim.ChaincodeStub, args
 	json.Unmarshal(tradesAsBytes, &tradeIndex)							// un stringify it aka JSON.parse()
 	
 	//append
-	tradeIndex = append(tradeIndex, args[0])							// add trade name to index list
+	tradeIndex = append(tradeIndex, timestampAsString)					// add trade timestampAsString to index list
 	fmt.Println("! trade index: ", tradeIndex)
 	jsonAsBytes, _ := json.Marshal(tradeIndex)
 	err = stub.PutState(tradeIndexStr, jsonAsBytes)						// store name of trade
