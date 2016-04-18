@@ -240,23 +240,26 @@ func (t *SimpleChaincode) create_and_submit_trade(stub *shim.ChaincodeStub, args
 		return nil, errors.New("10th argument must be a numeric string, either 0 or 1")
 	}
 
-	// reference
-	// chaincode.invoke.init_trade([data.tradedate, data.valuedate, data.operation, data.quantity, data.security, data.price, data.counterparty, data.user, data.timestamp, data.settled, data.needsrevision], cb_invoked);				//create a new trade
-
 	str := `{"tradedate": "` + tradedate + `", "valuedate": "` + valuedate + `", "operation": "` + operation + `", "quantity": ` + strconv.Itoa(quantity) + `, "security": "` + security + `", "price": "` + price + `", "counterparty": "` + counterparty + `", "user": "` + user + `", "timestamp": "` + timestamp + `", "settled": "` + strconv.Itoa(settled) + `", "needsrevision": "` + strconv.Itoa(needsrevision) + `"}`
+
+	fmt.Println("str: %s", str)
 
 	err = stub.PutState(timestamp, []byte(str))							// store trade with timestamp as key
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println("put state for timestamp key %s", timestamp)
 		
 	tradesAsBytes, err := stub.GetState(tradeIndexStr)					//get the trade index
 	if err != nil {
-		return nil, errors.New("Failed to get trade index")
+		return nil, errors.New("Failed to get value for key _tradeIndex")
 	}
 
 	var tradeIndex []string
 	json.Unmarshal(tradesAsBytes, &tradeIndex)							// un stringify it aka JSON.parse()
+
+	fmt.Println("stored timestamp at end of tradeIndexStr array: %s", tradeIndex)
 
 	//append
 	tradeIndex = append(tradeIndex, timestamp)					// add trade timestamp to index list
