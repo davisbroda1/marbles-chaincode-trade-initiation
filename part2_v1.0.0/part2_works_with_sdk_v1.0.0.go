@@ -139,17 +139,17 @@ func (t *SimpleChaincode) Query(stub *shim.ChaincodeStub, function string, args 
 // ============================================================================================================================
 func (t *SimpleChaincode) read(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	
-	var timestamp, jsonResp string
+	var key, jsonResp string
 	var err error
 
 	if len(args) != 1 {
-		return nil, errors.New("Incorrect number of arguments. Expecting timestamp of the var to query")
+		return nil, errors.New("Incorrect number of arguments. Expecting key of the value to query")
 	}
 
-	timestamp = args[0]
-	valAsbytes, err := stub.GetState(timestamp)									//get the var from chaincode state
+	key = args[0]
+	valAsbytes, err := stub.GetState(key)									//get the var from chaincode state
 	if err != nil {
-		jsonResp = "{\"Error\":\"Failed to get state for " + timestamp + "\"}"
+		jsonResp = "{\"Error\":\"Failed to get state for " + key + "\"}"
 		return nil, errors.New(jsonResp)
 	}
 
