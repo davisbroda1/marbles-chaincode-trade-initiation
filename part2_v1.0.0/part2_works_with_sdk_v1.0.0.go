@@ -370,7 +370,7 @@ func (t *SimpleChaincode) mark_revised(stub *shim.ChaincodeStub, args []string) 
 
 // enrich_and_settle - Enrich a Trade and mark it as settled
 // ============================================================================================================================
-func (t *SimpleChaincode) mark_revised(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+func (t *SimpleChaincode) enrich_and_settle(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	
 	var err error
 
@@ -378,7 +378,7 @@ func (t *SimpleChaincode) mark_revised(stub *shim.ChaincodeStub, args []string) 
 		return nil, errors.New("Incorrect number of arguments. Expecting 2")
 	}
 
-	fmt.Println("- start mark_revised")
+	fmt.Println("- start enrich_and_settle")
 
 	if len(args[0]) <= 0 {
 		return nil, errors.New("1st argument must be a non-empty string")
@@ -409,7 +409,7 @@ func (t *SimpleChaincode) mark_revised(stub *shim.ChaincodeStub, args []string) 
 		return nil, err
 	}
 
-	fmt.Println("- end mark_revised")
+	fmt.Println("- end enrich_and_settle")
 
 	return nil, nil
 
