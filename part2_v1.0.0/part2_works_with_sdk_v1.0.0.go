@@ -242,14 +242,14 @@ func (t *SimpleChaincode) create_and_submit_trade(stub *shim.ChaincodeStub, args
 
 	str := `{"tradedate": "` + tradedate + `", "valuedate": "` + valuedate + `", "operation": "` + operation + `", "quantity": ` + strconv.Itoa(quantity) + `, "security": "` + security + `", "price": "` + price + `", "counterparty": "` + counterparty + `", "user": "` + user + `", "timestamp": "` + timestamp + `", "settled": "` + strconv.Itoa(settled) + `", "needsrevision": "` + strconv.Itoa(needsrevision) + `"}`
 
-	fmt.Println("str: %s", str)
+	fmt.Println("str: ", str)
 
 	err = stub.PutState(timestamp, []byte(str))							// store trade with timestamp as key
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("put state for timestamp key %s", timestamp)
+	fmt.Println("put state for timestamp key: ", timestamp)
 		
 	tradesAsBytes, err := stub.GetState(tradeIndexStr)					//get the trade index
 	if err != nil {
@@ -259,7 +259,7 @@ func (t *SimpleChaincode) create_and_submit_trade(stub *shim.ChaincodeStub, args
 	var tradeIndex []string
 	json.Unmarshal(tradesAsBytes, &tradeIndex)							// un stringify it aka JSON.parse()
 
-	fmt.Println("stored timestamp at end of tradeIndexStr array: %s", tradeIndex)
+	fmt.Println("stored timestamp at end of tradeIndexStr array: ", tradeIndex)
 
 	//append
 	tradeIndex = append(tradeIndex, timestamp)					// add trade timestamp to index list
