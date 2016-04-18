@@ -304,14 +304,14 @@ func (t *SimpleChaincode) mark_revision_needed(stub *shim.ChaincodeStub, args []
 	}
 
 	var trade Trade
-	json.Unmarshal(tradesAsBytes, &trade)
+	json.Unmarshal(tradeAsBytes, &trade)
 
-	trade.user = newUser
-	trade.needsrevision = 1
+	trade.User = newUser
+	trade.NeedsRevision = 1
 
-	s := string(trade)
+	bytes, _ := json.Marshal(trade)
 
-	err = stub.PutState(timestamp, []byte(s))							// store trade with timestamp as key
+	err = stub.PutState(timestamp, bytes)							// store trade with timestamp as key
 	if err != nil {
 		return nil, err
 	}
@@ -350,14 +350,14 @@ func (t *SimpleChaincode) mark_revised(stub *shim.ChaincodeStub, args []string) 
 	}
 
 	var trade Trade
-	json.Unmarshal(tradesAsBytes, &trade)
+	json.Unmarshal(tradeAsBytes, &trade)
 
-	trade.user = newUser
-	trade.needsrevision = 0
+	trade.User = newUser
+	trade.NeedsRevision = 0
 
-	s := string(trade)
+	bytes, _ := json.Marshal(trade)
 
-	err = stub.PutState(timestamp, []byte(s))							// store trade with timestamp as key
+	err = stub.PutState(timestamp, bytes)							// store trade with timestamp as key
 	if err != nil {
 		return nil, err
 	}
@@ -396,14 +396,15 @@ func (t *SimpleChaincode) mark_revised(stub *shim.ChaincodeStub, args []string) 
 	}
 
 	var trade Trade
-	json.Unmarshal(tradesAsBytes, &trade)
+	json.Unmarshal(tradeAsBytes, &trade)
 
-	trade.user = newUser
-	trade.needsrevision = 0
+	trade.User = newUser
+	trade.NeedsRevision = 0
+	trade.Settled = 1
 
-	s := string(trade)
+	bytes, _ := json.Marshal(trade)
 
-	err = stub.PutState(timestamp, []byte(s))							// store trade with timestamp as key
+	err = stub.PutState(timestamp, bytes)							// store trade with timestamp as key
 	if err != nil {
 		return nil, err
 	}
