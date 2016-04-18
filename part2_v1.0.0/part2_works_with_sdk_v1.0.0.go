@@ -108,6 +108,12 @@ func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []
 		return t.write(stub, args)
 	} else if function == "create_and_submit_trade" {								// create and submit a new trade
 		return t.create_and_submit_trade(stub, args)
+	} else if function == "mark_revision_needed" {								
+		return t.mark_revision_needed(stub, args)
+	} else if function == "mark_revised" {								
+		return t.mark_revised(stub, args)
+	} else if function == "enrich_and_settle" {								
+		return t.enrich_and_settle(stub, args)
 	}
 
 	fmt.Println("run did not find func: " + function)						// error
@@ -182,13 +188,10 @@ func (t *SimpleChaincode) write(stub *shim.ChaincodeStub, args []string) ([]byte
 
 }
 
-// Init Marble - create a new marble, store into chaincode state
+// create_and_submit_trade - create a new trade, store into chaincode state
 // ============================================================================================================================
 func (t *SimpleChaincode) create_and_submit_trade(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 	
-	// reference
-	// chaincode.invoke.init_trade([data.tradedate, data.valuedate, data.operation, data.quantity, data.security, data.price, data.counterparty, data.user, data.timestamp, data.settled, data.needsrevision], cb_invoked);				//create a new trade
-
 	var err error
 
 	if len(args) != 11 {
@@ -268,6 +271,145 @@ func (t *SimpleChaincode) create_and_submit_trade(stub *shim.ChaincodeStub, args
 	err = stub.PutState(tradeIndexStr, jsonAsBytes)						// store name of trade
 
 	fmt.Println("- end create_and_submit_trade")
+	return nil, nil
+
+}
+
+
+// mark_revision_needed - Mark a Trade in need of revision
+// ============================================================================================================================
+func (t *SimpleChaincode) mark_revision_needed(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+	
+	var err error
+
+	if len(args) != 2 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 11")
+	}
+
+	fmt.Println("- start mark_revision_needed")
+
+	if len(args[0]) <= 0 {
+		return nil, errors.New("1st argument must be a non-empty string")
+	}
+	if len(args[1]) <= 0 {
+		return nil, errors.New("2nd argument must be a non-empty string")
+	}
+	
+	timestamp := strings.ToLower(args[0])
+	newUser := strings.ToLower(args[1])
+
+	tradeAsBytes, err := stub.GetState(timestamp)					// get the trade
+	if err != nil {
+		return nil, errors.New("Failed to get value for key timestamp")
+	}
+
+	var trade Trade
+	json.Unmarshal(tradesAsBytes, &trade)
+
+	trade.user = newUser
+	trade.needsrevision = 1
+
+	s := string(trade)
+
+	err = stub.PutState(timestamp, []byte(s))							// store trade with timestamp as key
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println("- end mark_revision_needed")
+
+	return nil, nil
+
+}
+
+// mark_revised - Mark a Trade in as revised
+// ============================================================================================================================
+func (t *SimpleChaincode) mark_revised(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+	
+	var err error
+
+	if len(args) != 2 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 11")
+	}
+
+	fmt.Println("- start mark_revised")
+
+	if len(args[0]) <= 0 {
+		return nil, errors.New("1st argument must be a non-empty string")
+	}
+	if len(args[1]) <= 0 {
+		return nil, errors.New("2nd argument must be a non-empty string")
+	}
+	
+	timestamp := strings.ToLower(args[0])
+	newUser := strings.ToLower(args[1])
+
+	tradeAsBytes, err := stub.GetState(timestamp)					// get the trade
+	if err != nil {
+		return nil, errors.New("Failed to get value for key timestamp")
+	}
+
+	var trade Trade
+	json.Unmarshal(tradesAsBytes, &trade)
+
+	trade.user = newUser
+	trade.needsrevision = 0
+
+	s := string(trade)
+
+	err = stub.PutState(timestamp, []byte(s))							// store trade with timestamp as key
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println("- end mark_revised")
+
+	return nil, nil
+
+}
+
+// enrich_and_settle - Enrich a Trade and mark it as settled
+// ============================================================================================================================
+func (t *SimpleChaincode) mark_revised(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+	
+	var err error
+
+	if len(args) != 2 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 11")
+	}
+
+	fmt.Println("- start mark_revised")
+
+	if len(args[0]) <= 0 {
+		return nil, errors.New("1st argument must be a non-empty string")
+	}
+	if len(args[1]) <= 0 {
+		return nil, errors.New("2nd argument must be a non-empty string")
+	}
+	
+	timestamp := strings.ToLower(args[0])
+	newUser := strings.ToLower(args[1])
+
+	tradeAsBytes, err := stub.GetState(timestamp)					// get the trade
+	if err != nil {
+		return nil, errors.New("Failed to get value for key timestamp")
+	}
+
+	var trade Trade
+	json.Unmarshal(tradesAsBytes, &trade)
+
+	trade.user = newUser
+	trade.needsrevision = 0
+
+	s := string(trade)
+
+	err = stub.PutState(timestamp, []byte(s))							// store trade with timestamp as key
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println("- end mark_revised")
+
 	return nil, nil
 
 }
