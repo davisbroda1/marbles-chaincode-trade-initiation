@@ -77,11 +77,11 @@ func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte,
 		return nil, errors.New("Expecting integer value for asset holding")
 	}
 
-	// // Write the state to the ledger
-	// err = stub.PutState("abc", []byte(strconv.Itoa(Aval)))				//making a test var "abc", I find it handy to read/write to it right away to test the network
-	// if err != nil {
-	// 	return nil, err
-	// }
+	// Write the state to the ledger
+	err = stub.PutState("abc", []byte(strconv.Itoa(Aval)))				//making a test var "abc", I find it handy to read/write to it right away to test the network
+	if err != nil {
+		return nil, err
+	}
 	
 	var empty []string
 	jsonAsBytes, _ := json.Marshal(empty)								//marshal an emtpy array of strings to clear the index
