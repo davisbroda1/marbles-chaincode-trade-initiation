@@ -40,14 +40,14 @@ type Trade struct {
 	TradeDate string `json:"tradedate"`
 	ValueDate string `json:"valuedate"`
 	Operation string `json:"operation"`
-	Quantity int `json:"quantity"`
+	Quantity int `json:"quantity,string"`
 	Security string `json:"security"`
 	Price string `json:"price"`
 	Counterparty string `json:"counterparty"`
 	User string `json:"user"`
-	Timestamp string `json:"timestamp"`		// utc timestamp of creation, use JS/jQuery timestamp as string
-	Settled int `json:"settled"`				// enriched & settled
-	NeedsRevision int `json:"needsrevision"`	// returned to client for revision
+	Timestamp string `json:"timestamp"`			// utc timestamp of creation, use JS/jQuery timestamp as string
+	Settled int `json:"settled,string"`			// enriched & settled
+	NeedsRevision int `json:"needsrevision,string"`	// returned to client for revision
 }
 
 // ============================================================================================================================
@@ -375,7 +375,7 @@ func (t *SimpleChaincode) mark_revised(stub *shim.ChaincodeStub, args []string) 
 	var err error
 
 	if len(args) != 2 {
-		return nil, errors.New("Incorrect number of arguments. Expecting 11")
+		return nil, errors.New("Incorrect number of arguments. Expecting 2")
 	}
 
 	fmt.Println("- start mark_revised")
