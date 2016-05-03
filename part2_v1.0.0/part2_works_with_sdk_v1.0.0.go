@@ -123,6 +123,52 @@ func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []
 }
 
 // ============================================================================================================================
+// Invoke - Our entry point for Invokcations
+// ============================================================================================================================
+func (t *SimpleChaincode) Invoke(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
+	
+	fmt.Println("run is running " + function)
+
+	// Handle different functions
+	if function == "init" {													// initialize the chaincode state, used as reset
+		return t.init(stub, args)
+	} else if function == "write" {											// writes a value to the chaincode state
+		return t.write(stub, args)
+	} else if function == "create_and_submit_trade" {								// create and submit a new trade
+		return t.create_and_submit_trade(stub, args)
+	} else if function == "mark_revision_needed" {								
+		return t.mark_revision_needed(stub, args)
+	} else if function == "mark_revised" {								
+		return t.mark_revised(stub, args)
+	} else if function == "enrich_and_settle" {								
+		return t.enrich_and_settle(stub, args)
+	}
+
+	fmt.Println("run did not find func: " + function)						// error
+
+	return nil, errors.New("Received unknown function invocation")
+
+}
+
+// ============================================================================================================================
+// Init - Our entry point for Invokcations
+// ============================================================================================================================
+func (t *SimpleChaincode) Init(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
+	
+	fmt.Println("run is running " + function)
+
+	// Handle different functions
+	if function == "init" {													// initialize the chaincode state, used as reset
+		return t.init(stub, args)
+	}
+
+	fmt.Println("run did not find func: " + function)						// error
+
+	return nil, errors.New("Received unknown function invocation")
+
+}
+
+// ============================================================================================================================
 // Query - Our entry point for Queries
 // ============================================================================================================================
 func (t *SimpleChaincode) Query(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
