@@ -114,6 +114,8 @@ func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []
 		return t.mark_revised(stub, args)
 	} else if function == "enrich_and_settle" {								
 		return t.enrich_and_settle(stub, args)
+	} else if function == "clear_all_trades" {								
+		return t.clear_all_trades(stub, args)
 	}
 
 	fmt.Println("run did not find func: " + function)						// error
@@ -127,7 +129,7 @@ func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []
 // ============================================================================================================================
 func (t *SimpleChaincode) Invoke(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
 	
-	fmt.Println("run is running " + function)
+	fmt.Println("invoke is running " + function)
 
 	// Handle different functions
 	if function == "init" {													// initialize the chaincode state, used as reset
@@ -142,9 +144,11 @@ func (t *SimpleChaincode) Invoke(stub *shim.ChaincodeStub, function string, args
 		return t.mark_revised(stub, args)
 	} else if function == "enrich_and_settle" {								
 		return t.enrich_and_settle(stub, args)
+	} else if function == "clear_all_trades" {								
+		return t.clear_all_trades(stub, args)
 	}
 
-	fmt.Println("run did not find func: " + function)						// error
+	fmt.Println("invoke did not find func: " + function)						// error
 
 	return nil, errors.New("Received unknown function invocation")
 
@@ -458,6 +462,39 @@ func (t *SimpleChaincode) enrich_and_settle(stub *shim.ChaincodeStub, args []str
 	fmt.Println("- end enrich_and_settle")
 
 	return nil, nil
+
+}
+
+// clear trades -- Clears all trades
+// ============================================================================================================================
+func (t *SimpleChaincode) clear_all_trades(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+	
+	var err error
+	var empty []string
+
+	err = stub.DelState(tradeIndexStr)
+
+	if err != nil {
+
+		return nil, err
+
+	} else {
+
+		// reset the value of tradeIndexStr, marshal an empty array of strings
+		jsonAsBytes, _ := json.Marshal(empty)
+		err = stub.PutState(tradeIndexStr, jsonAsBytes)
+
+		if err != nil {
+
+			return nil, err
+
+		} else {
+
+			return nil, nil
+
+		}
+
+	}
 
 }
 
