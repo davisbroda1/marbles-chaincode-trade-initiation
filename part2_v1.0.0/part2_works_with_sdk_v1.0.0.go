@@ -134,7 +134,7 @@ func (t *SimpleChaincode) Invoke(stub *shim.ChaincodeStub, function string, args
 	fmt.Print("\n\n====================================================\n"+
 		"Checking to see if updated code being used"+
 		"\n====================================================\n\n")
-	
+
 	// Handle different functions
 	if function == "init" {													// initialize the chaincode state, used as reset
 		return t.init(stub, args)
